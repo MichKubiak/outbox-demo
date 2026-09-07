@@ -1,0 +1,12 @@
+.git
+.github
+.gradle
+.gradle-home
+.idea
+build
+docs
+*.md
+*.py
+Dockerfile
+.dockerignore
+docker-compose.yml

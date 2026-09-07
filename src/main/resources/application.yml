@@ -1,0 +1,84 @@
+spring:
+  application:
+    name: outbox
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/outbox}
+    username: ${SPRING_DATASOURCE_USERNAME:outbox}
+    password: ${SPRING_DATASOURCE_PASSWORD:outbox}
+    hikari:
+      maximum-pool-size: 10
+      pool-name: outbox-pool
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    connect-retries: 10
+    connect-retries-interval: 5s
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  task:
+    scheduling:
+      shutdown:
+        await-termination: true
+        await-termination-period: 30s
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8080
+  shutdown: graceful
+
+app:
+  environment: ${APP_ENVIRONMENT:local}
+
+outbox:
+  publisher:
+    enabled: ${OUTBOX_PUBLISHER_ENABLED:true}
+    fixed-delay-ms: 5000
+    batch-size: 100
+    backlog-warn-age-seconds: 60
+
+ratelimit:
+  capacity: 100
+  refill-period: PT1M
+  trusted-proxies: []
+  max-tracked-clients: 100000
+  sweep-interval: PT5M
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        readiness:
+          include: readinessState,db
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5,0.95,0.99
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.example.outbox: INFO
