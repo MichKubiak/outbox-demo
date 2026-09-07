@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-outbox}
+      POSTGRES_USER: ${POSTGRES_USER:-outbox}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-outbox}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-outbox} -d ${POSTGRES_DB:-outbox}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  app:
+    image: ${OUTBOX_IMAGE:-outbox:1.0.0}
+    build:
+      context: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-outbox}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-outbox}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-outbox}
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-docker}
+      OUTBOX_PUBLISHER_ENABLED: ${OUTBOX_PUBLISHER_ENABLED:-true}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    stop_grace_period: 40s
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
